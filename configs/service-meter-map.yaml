@@ -1,0 +1,95 @@
+azuregov:
+  api:
+    base_url: "https://prices.azure.com/api/retail/prices"
+    api_version: "2023-01-01-preview"
+
+  common:
+    currency: "USD"
+
+  services:
+    azure_firewall:
+      serviceName: "Azure Firewall"
+      meters:
+        base_hour:
+          skuMatch: "(Standard|Premium)"
+          meterRegex: "(Hour|Hours)"
+        data_gb:
+          meterRegex: "(Data|GB)"
+
+    nat_gateway:
+      serviceName: "NAT Gateway"
+      meters:
+        base_hour:
+          meterRegex: "(Hour|Hours)"
+        data_gb:
+          meterRegex: "(Data|GB)"
+
+    bastion:
+      serviceName: "Azure Bastion"
+      meters:
+        base_hour:
+          skuMatch: "(Standard|Basic)"
+          meterRegex: "(Hour|Hours)"
+        data_out:
+          meterRegex: "(Outbound|Egress|Data)"
+
+    vm:
+      serviceName: "Virtual Machines"
+      meters:
+        linux_hour:
+          meterRegex: "(Linux).*?(Hour|Hours)"
+        windows_hour:
+          meterRegex: "(Windows).*?(Hour|Hours)"
+
+    log_analytics:
+      serviceName: "Log Analytics"
+      meters:
+        ingest_gb:
+          meterRegex: "(Ingestion|Data)"
+
+    sentinel:
+      serviceName: "Sentinel"
+      meters:
+        ingest_gb:
+          meterRegex: "(Pay-as-you-go Analysis|Data processing|Ingestion)"
+          skuNameContains: "Pay-as-you-go"
+
+    ip_addresses:
+      serviceName: "Virtual Network"
+      priceType: "Consumption"
+      filters:
+        productNameContains: "Public IP"
+      meters:
+        public_ip_hour:
+          meterRegex: "(IP Addresses|Hour|Hours|1 Hour)"
+          skuNameContains: "Standard"
+
+    azure_backup:
+      serviceName: "Backup"
+      priceType: "Consumption"
+      meters:
+        protected_instance:
+          meterRegex: "^Azure VM Protected Instance$"
+        backup_storage:
+          meterRegex: "(Standard LRS Data Stored)"
+
+    vpn_gateway:
+      serviceName: "VPN Gateway"
+      priceType: "Consumption"
+      meters:
+        gateway_hour:
+          meterRegex: "^(VpnGw[0-9A-Za-z]*|Basic Gateway|Standard Gateway)$"
+
+    app_gateway:
+      serviceName: "Application Gateway"
+      priceType: "Consumption"
+      meters:
+        base_hour:
+          meterRegex: "(Fixed Cost|Gateway)"
+        capacity_unit:
+          meterRegex: "(Capacity Unit|CU)"
+
+
+commercial:
+  services:
+    # SAME STRUCTURE — different meter naming quirks

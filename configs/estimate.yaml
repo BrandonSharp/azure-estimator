@@ -1,0 +1,72 @@
+meta:
+  customer: "Example Customer"
+  cloud: "azuregov"            # azuregov | commercial
+  region: "usgovvirginia"      # eastus, westus2, usgovvirginia, etc.
+  currency: "USD"
+  hours_per_month: 730
+
+pricing:
+  discount_pct: 0              # EA / reseller
+  uplift_pct: 5                # risk buffer
+  managed_services:
+    swat_teams: 1              # supports fractional values, e.g. 1.5
+
+profile: "balanced"
+
+inputs:
+  bicep_plan: "./plans/main.json"   # output of `az deployment what-if`
+
+
+baseline:
+  vm:
+    linux_hour:
+      count: 5
+      hours_per_month: 730
+    windows_hour:
+      count: 3
+      hours_per_month: 730
+
+  azure_backup:
+    enabled: true
+    # v1 model: protected instances + backup storage
+    protected_instances:
+      - tier: "50GB"        # naming varies; used as matching hint
+        count: 5
+      - tier: "500GB"
+        count: 2
+    backup_storage_gb_per_month: 500
+
+  vpn_gateway:
+    enabled: false
+    sku: "VpnGw1"           # example input; used as matching hint
+    hours_per_month: 730
+
+  app_gateway_waf:
+    enabled: false
+    sku: "WAF_v2"           # WAF_v2 | Standard_v2
+    hours_per_month: 730
+    capacity_units_per_hour_avg: 2
+
+spokes:
+  - name: "app1"
+    enabled: true
+    notes: "Example spoke workload; set enabled=true to include it in pricing"
+    resources:
+      - type: vm
+        count: 2
+        size: "Standard_D4s_v5"
+        os: "linux"
+        hours_per_month: 730
+        notes: "Two application VMs"
+
+      - type: log_analytics
+        ingest_gb_per_day: 12.5
+        retention_days: 90
+        notes: "App-specific workspace ingestion"
+
+      - type: custom
+        name: "Third-party SaaS"
+        unit: "month"
+        quantity: 1
+        unit_price: 250
+        notes: "Placeholder for a manually-priced dependency"

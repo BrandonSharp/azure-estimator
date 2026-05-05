@@ -1,0 +1,12 @@
+# Default/manual prices used when estimate/profile values are not set.
+# Precedence (lowest -> highest): manual-pricing.yaml -> profiles.yaml -> estimate.yaml
+
+pricing:
+  managed_services:
+    rate_per_team_per_month: 2000
+    people_per_team: 6
+
+  manual_services:
+    entra_p2:
+      # Assumed baseline price. Override in profile/estimate when needed.
+      price_per_user_per_year: 108
