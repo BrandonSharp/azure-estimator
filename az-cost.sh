@@ -448,7 +448,7 @@ emit_managed_services
 
 # --- Totals + write outputs ---------------------------------------------------
 
-line_items_json="$(echo "$line_items" | jq 'map(.extended = (.quantity * .unit_price))')"
+line_items_json="$(echo "$line_items" | jq 'def round2: ((. * 100) | round) / 100; map(.extended = ((.quantity * .unit_price) | round2))')"
 
 subtotal="$(echo "$line_items_json" | jq '[.[].extended] | add // 0')"
 discount_amt="$(jq -n --argjson s "$subtotal" --argjson d "$discount_pct" '$s * ($d/100)')"
@@ -461,11 +461,56 @@ echo "section,name,unit,quantity,unit_price,extended,source,notes" > "$OUTDIR/li
 echo "$line_items_json" | jq -r '.[] | [(.section // "Baseline"),.name,.unit,.quantity,.unit_price,.extended,.source,(.notes // "")] | @csv' >> "$OUTDIR/line-items.csv"
 
 cust="$(echo "$meta" | jq -r '.customer // "Customer"')"
+
+# Save shareable Markdown report
+report_md="$OUTDIR/estimate-report.md"
+{
+  echo "# Managed Enclave - Estimated Monthly Costs"
+  echo
+  printf "_Generated: %s_\n\n" "$(date -u +"%Y-%m-%d %H:%M:%S UTC")"
+  printf -- "- Customer: **%s**\n" "$cust"
+  printf -- "- Cloud: **%s**\n" "$cloud"
+  printf -- "- Region: **%s**\n" "$region"
+  printf -- "- Profile: **%s**\n" "$profile"
+  printf -- "- Currency: **%s**\n\n" "$currency"
+
+  echo "## Totals (per month)"
+  echo
+  printf -- "- Subtotal: **%.2f %s**\n" "$subtotal" "$currency"
+  printf -- "- Discount: **-%.2f (%s%%)**\n" "$discount_amt" "$discount_pct"
+  printf -- "- Uplift: **+%.2f (%s%%)**\n" "$uplift_amt" "$uplift_pct"
+  printf -- "- TOTAL: **%.2f %s**\n\n" "$total" "$currency"
+
+  if [[ "$(echo "$warnings" | jq 'length')" -gt 0 ]]; then
+    echo "## Warnings"
+    echo
+    echo "$warnings" | jq -r '.[] | "- " + .'
+    echo
+  fi
+
+  while IFS= read -r section; do
+    [[ -n "$section" ]] || continue
+    printf "## %s\n\n" "$section"
+    section_subtotal="$(echo "$line_items_json" | jq -r --arg sec "$section" '[.[] | select((.section // "Baseline") == $sec) | .extended] | add // 0')"
+    printf "**Section Subtotal:** %.2f %s\n\n" "$section_subtotal" "$currency"
+    echo "| Item | Unit | Qty | Unit Price | Ext | Source | Notes |"
+    echo "|---|---|---:|---:|---:|---|---|"
+    echo "$line_items_json" | jq -r --arg sec "$section" '
+      .[]
+      | select((.section // "Baseline") == $sec)
+      | [(.name|tostring),(.unit|tostring),(.quantity|tostring),(.unit_price|tostring),(.extended|tostring),(.source|tostring),((.notes // "")|tostring)]
+      | map(gsub("\\|"; "\\\\|") | gsub("\n"; " "))
+      | "| " + join(" | ") + " |"
+    '
+    echo
+  done < <(echo "$line_items_json" | jq -r 'reduce .[] as $item ([]; (($item.section // "Baseline") as $s | if index($s) then . else . + [$s] end)) | .[]')
+} > "$report_md"
 printf "\nEstimate (%s | cloud=%s | region=%s | profile=%s)\n" "$cust" "$cloud" "$region" "$profile"
 printf "Subtotal: %.2f %s\n" "$subtotal" "$currency"
 printf "Discount: -%.2f (%s%%)\n" "$discount_amt" "$discount_pct"
 printf "Uplift:   +%.2f (%s%%)\n" "$uplift_amt" "$uplift_pct"
 printf "TOTAL:    %.2f %s\n\n" "$total" "$currency"
+printf "Markdown: %s\n\n" "$report_md"
 
 if [[ "$(echo "$warnings" | jq 'length')" -gt 0 ]]; then
   echo "Warnings:"

@@ -9,4 +9,4 @@ pricing:
   manual_services:
     entra_p2:
       # Assumed baseline price. Override in profile/estimate when needed.
-      price_per_user_per_year: 108
+      price_per_user_per_year: 42

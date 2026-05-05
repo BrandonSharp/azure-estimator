@@ -1,20 +1,30 @@
 low_cost:
+  entra_p2:
+    enabled: true
+    users: 2
   azure_firewall:
-    sku: "Standard"
+    enabled: true
+    sku: "Basic"
+  bastion:
+    enabled: true
+    sku: "Basic"
+    hours_per_month: 730
   sentinel:
-    enabled: false
+    enabled: true
+    ingest_gb_per_day: 5
   log_analytics:
     retention_days: 30
   public_ip:
     enabled: true
     sku: "Standard"         # Standard | Basic
-    count: 1
+    count: 2
+    hours_per_month: 730
+    notes: "2x public IPs for Firewall and Bastion"
 
 balanced:
   entra_p2:
     enabled: true
     users: 10
-    price_per_user_per_year: 120
   azure_firewall:
     enabled: true
     sku: "Standard"
@@ -35,10 +45,24 @@ balanced:
     notes: "2x public IPs for Firewall and Bastion"
 
 high_security:
+  entra_p2:
+    enabled: true
+    users: 10
   azure_firewall:
+    enabled: true
     sku: "Premium"
+  bastion:
+    enabled: true
+    sku: "Premium"
+    hours_per_month: 730
   sentinel:
     enabled: true
     commitment_tier_gb_per_day: 50
   log_analytics:
     retention_days: 180
+  public_ip:
+    enabled: true
+    sku: "Standard"         # Standard | Basic
+    count: 2
+    hours_per_month: 730
+    notes: "2x public IPs for Firewall and Bastion"
