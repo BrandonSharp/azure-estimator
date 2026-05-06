@@ -18,34 +18,17 @@ inputs:
 
 
 baseline:
-  vm:
-    linux_hour:
-      count: 5
-      hours_per_month: 730
-    windows_hour:
-      count: 3
+  resources:
+    - type: vpn_gateway
+      enabled: false
+      sku: "VpnGw1"           # example input; used as matching hint
       hours_per_month: 730
 
-  azure_backup:
-    enabled: true
-    # v1 model: protected instances + backup storage
-    protected_instances:
-      - tier: "50GB"        # naming varies; used as matching hint
-        count: 5
-      - tier: "500GB"
-        count: 2
-    backup_storage_gb_per_month: 500
-
-  vpn_gateway:
-    enabled: false
-    sku: "VpnGw1"           # example input; used as matching hint
-    hours_per_month: 730
-
-  app_gateway_waf:
-    enabled: false
-    sku: "WAF_v2"           # WAF_v2 | Standard_v2
-    hours_per_month: 730
-    capacity_units_per_hour_avg: 2
+    - type: app_gateway_waf
+      enabled: false
+      sku: "WAF_v2"           # WAF_v2 | Standard_v2
+      hours_per_month: 730
+      capacity_units_per_hour_avg: 2
 
 spokes:
   - name: "app1"
@@ -59,10 +42,25 @@ spokes:
         hours_per_month: 730
         notes: "Two application VMs"
 
+      - type: azure_backup
+        enabled: true
+        # v1 model: protected instances + backup storage
+        protected_instances:
+          - tier: "50GB"        # naming varies; used as matching hint
+            count: 2
+        backup_storage_gb_per_month: 500
+
       - type: log_analytics
-        ingest_gb_per_day: 12.5
+        ingest_gb_per_day: 0.5
         retention_days: 90
         notes: "App-specific workspace ingestion"
+
+      - type: app_gateway_waf
+        enabled: true
+        sku: "WAF_v2"
+        hours_per_month: 730
+        capacity_units_per_hour_avg: 1.25
+        notes: "App-specific ingress with WAF"
 
       - type: custom
         name: "Third-party SaaS"

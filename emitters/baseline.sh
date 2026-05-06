@@ -150,7 +150,12 @@ emit_bastion() {
 
 emit_log_analytics() {
   local cfg="$1"
-  emit_log_analytics_common "$cfg" "Log Analytics"
+  local context_label="${2:-Baseline}"
+  if [[ "$context_label" == "Baseline" ]]; then
+    emit_log_analytics_common "$cfg" "Log Analytics"
+  else
+    emit_log_analytics_common "$cfg" "Log Analytics (${context_label})"
+  fi
 }
 
 emit_sentinel() {
@@ -194,23 +199,3 @@ emit_defender() {
   add_item "Defender for Cloud - Storage (ASSUMPTION)" "storage-month" "$storage" 0 "assumption" "{}" "$notes"
 }
 
-emit_baseline_service() {
-  local key="$1"
-  local cfg="$2"
-  case "$key" in
-    azure_firewall) emit_azure_firewall "$cfg" ;;
-    nat_gateway) emit_nat_gateway "$cfg" ;;
-    bastion) emit_bastion "$cfg" ;;
-    log_analytics) emit_log_analytics "$cfg" ;;
-    sentinel) emit_sentinel "$cfg" ;;
-    defender) emit_defender "$cfg" ;;
-    entra_p2) emit_entra_p2 "$cfg" ;;
-    public_ip) emit_public_ip "$cfg" ;;
-    azure_backup) emit_azure_backup "$cfg" ;;
-    vpn_gateway) emit_vpn_gateway "$cfg" ;;
-    app_gateway_waf|app_gateway) emit_app_gateway_waf "$cfg" ;;
-    *)
-      add_warning "Baseline '${key}' is enabled, but no emitter is implemented yet; it was skipped."
-      ;;
-  esac
-}

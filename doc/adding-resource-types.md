@@ -4,13 +4,13 @@ This guide explains how to add a new priced resource to the estimator.
 
 ## How The Pipeline Works
 
-1. `configs/estimate.yaml` (and optional profile overlays) define enabled baseline and spoke resources.
+1. `configs/estimate.yaml` and `configs/profiles.yaml` define baseline and spoke resources using the same typed shape.
 2. `configs/manual-pricing.yaml` provides default prices for manual service items.
 3. `configs/service-meter-map.yaml` defines Azure Retail API lookup rules:
    - service name
    - optional service-level filters
    - meter keys and matching constraints
-4. `az-cost.sh` emitter functions convert config inputs into line items:
+4. Emitter functions (`emitters/baseline.sh` and `emitters/spokes.sh`) convert config inputs into line items:
    - quantity math
    - unit price lookup via `price_for`
    - output rows via `add_item`
@@ -19,9 +19,44 @@ This guide explains how to add a new priced resource to the estimator.
 ## File Responsibilities
 
 - `configs/estimate.yaml`: user intent and quantities
+- `configs/profiles.yaml`: profile overlays with the same resource schema as estimate
 - `configs/manual-pricing.yaml`: baseline defaults for manual/non-API priced items
 - `configs/service-meter-map.yaml`: API matching rules
-- `az-cost.sh`: computation and output formatting
+- `az-cost.sh`: merge/orchestration and output formatting
+- `emitters/baseline.sh`: baseline + shared service emitters
+- `emitters/spokes.sh`: spoke and cross-scope resource emitters
+
+## Resource Schema (Baseline + Spokes)
+
+Use the same schema in both places:
+
+- `baseline.resources`: array (or keyed object map) of typed resources
+- `spokes[].resources`: array (or keyed object map) of typed resources
+
+Typed resource shape:
+
+```yaml
+type: vm
+enabled: true
+# resource-specific fields...
+```
+
+Examples:
+
+```yaml
+baseline:
+  resources:
+    - type: vm
+      count: 2
+      size: "Standard_D4s_v5"
+      os: "windows"
+
+spokes:
+  - name: app1
+    resources:
+      - type: app_gateway_waf
+        sku: "WAF_v2"
+```
 
 ## Manual Pricing Defaults
 
@@ -62,7 +97,7 @@ Tips:
 - Keep meter filters narrow enough to avoid grabbing unrelated rows.
 - Use `skuMatch` for regex matching, and `skuNameContains` for simpler contains matching.
 
-## Step 2: Create The Emitter In az-cost.sh
+## Step 2: Create The Emitter
 
 Add an emitter function that:
 
@@ -85,33 +120,23 @@ emit_my_service() {
 }
 ```
 
-## Step 3: Register The Emitter
+## Step 3: Add The Emitter Function
 
-### Baseline resources
+Dispatch is automatic by resource type. The script calls `emit_<type>`.
 
-Register in `emit_baseline_service()` case statement.
+- `type: vm` -> `emit_vm`
+- `type: app_gateway_waf` -> `emit_app_gateway_waf`
 
-Example:
+Type normalization:
 
-```bash
-my_service) emit_my_service "$cfg" ;;
-```
+- Hyphens are converted to underscores (`app-gateway-waf` -> `emit_app_gateway_waf`)
+- `app_gateway` aliases to `app_gateway_waf`
 
-### Spoke resource types
-
-Register in the spoke `case "$typ" in` dispatch.
-
-Example:
-
-```bash
-my_service) emit_spoke_my_service "$r" "$spoke_name" ;;
-```
-
-If a type is missing, the script now warns and falls back to a custom placeholder for spokes.
+If a type has no emitter, the script warns and falls back to `emit_custom` placeholder pricing.
 
 ## Step 4: Add Config Shape In estimate.yaml
 
-Document and add example input under baseline and/or spokes.
+Document and add example input under baseline and/or spokes (same typed shape).
 
 Spoke example:
 

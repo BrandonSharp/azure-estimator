@@ -27,12 +27,14 @@ set -euo pipefail
 #   spokes: [ { name, enabled, resources:[...] }, ... ]
 #
 # profiles.yaml:
-#   profiles:
-#     balanced:
-#       baseline: { ... overrides ... }
-#       meta: { ... overrides ... }        # optional
-#       pricing: { ... overrides ... }     # optional
-#       spokes_defaults: { ... }           # optional (not used unless you extend)
+#   balanced:
+#     baseline:
+#       resources:
+#         - type: azure_firewall
+#           enabled: true
+#           sku: "Standard"
+#     meta: { ... overrides ... }        # optional
+#     pricing: { ... overrides ... }     # optional
 #
 # service-meter-map.yaml:
 #   azuregov:
@@ -107,27 +109,7 @@ profile="$(echo "$estimate_json" | jq -r '.profile // "balanced"')"
 # Pull profile object (or empty). Supports both:
 #   profiles: { balanced: {...} }
 # and top-level: { balanced: {...} }
-#
-# If a profile already has a .baseline block, use it as-is.
-# Otherwise, treat non-reserved top-level keys as baseline entries so
-# new resource types (for example vpn_gateway/app_gateway_waf) work
-# without script changes.
-profile_obj="$(echo "$profiles_json" | jq --arg p "$profile" '
-  (.profiles[$p] // .[$p] // {}) as $raw
-  | ["meta","pricing","spokes_defaults","baseline"] as $reserved
-  | if ($raw | has("baseline")) then
-      $raw
-    else
-      $raw + {
-        baseline: (
-          ($raw
-            | to_entries
-            | map(select(.key as $k | ($reserved | index($k) | not)))
-            | from_entries)
-        )
-      }
-    end
-')"
+profile_obj="$(echo "$profiles_json" | jq --arg p "$profile" '(.profiles[$p] // .[$p] // {})')"
 
 # Merge profile overrides into estimate:
 # - meta, pricing, baseline are deep-merged
@@ -395,6 +377,56 @@ add_item() {
     '. + [{name:$n, unit:$u, quantity:$q, unit_price:$p, source:$s, details:$d, notes:$notes, section:$section}]')"
 }
 
+normalize_type_name() {
+  local t="${1:-}"
+  t="${t//-/_}"
+  echo "$t"
+}
+
+emit_resource() {
+  # Args: resource_json context_label
+  local r="$1"
+  local context_label="${2:-}"
+  local raw_type norm_type fn
+  raw_type="$(echo "$r" | jq -r '.type // empty')"
+
+  if [[ -z "$raw_type" || "$raw_type" == "null" ]]; then
+    add_warning "Encountered resource with no 'type'; skipping."
+    return 0
+  fi
+
+  norm_type="$(normalize_type_name "$raw_type")"
+  if [[ "$norm_type" == "app_gateway" ]]; then
+    norm_type="app_gateway_waf"
+  fi
+
+  fn="emit_${norm_type}"
+  if declare -F "$fn" >/dev/null 2>&1; then
+    "$fn" "$r" "$context_label"
+    return 0
+  fi
+
+  add_warning "Resource type '${raw_type}' has no emitter (${fn}); using custom placeholder pricing."
+  emit_custom "$(echo "$r" | jq --arg n "$raw_type" '. + {name:(.name // $n), unit:(.unit // "each"), quantity:(.quantity // (.count // 1)), unit_price:(.unit_price // 0)}')" "$context_label"
+}
+
+baseline_resources_json="$(echo "$baseline" | jq -c '
+  if (type != "object") then
+    []
+  else
+    if ((.resources // null) == null) then
+      []
+    elif ((.resources | type) == "array") then
+      .resources
+    elif ((.resources | type) == "object") then
+      (.resources | to_entries | map((.value // {}) + {type:.key}))
+    else
+      []
+    end
+    | map(select((.enabled // true) == true))
+  end
+')"
+
 # --- Emitters ----------------------------------------------------------------
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
@@ -413,11 +445,10 @@ source "$SCRIPT_DIR/emitters/spokes.sh"
 # echo "Currency: $currency" >&2
 # echo "Baseline: $baseline" >&2
 
-while read -r key; do
+while read -r r; do
   current_section='Baseline'
-  cfg="$(echo "$baseline" | jq --arg k "$key" '.[$k]')"
-  emit_baseline_service "$key" "$cfg"
-done < <(echo "$baseline" | jq -r 'to_entries[] | select((.value.enabled // false) == true) | .key')
+  emit_resource "$r" "Baseline"
+done < <(echo "$baseline_resources_json" | jq -c '.[]?')
 
 # --- Build spokes/workloads ---------------------------------------------------
 
@@ -427,19 +458,23 @@ while read -r s; do
 
   spoke_name="$(echo "$s" | jq -r '.name // "spoke"')"
   current_section="Spoke: ${spoke_name}"
+
+  spoke_resources_json="$(echo "$s" | jq -c '
+    if ((.resources // null) == null) then
+      []
+    elif ((.resources | type) == "array") then
+      .resources
+    elif ((.resources | type) == "object") then
+      (.resources | to_entries | map((.value // {}) + {type:.key}))
+    else
+      []
+    end
+    | map(select((.enabled // true) == true))
+  ')"
+
   while read -r r; do
-    typ="$(echo "$r" | jq -r '.type')"
-    case "$typ" in
-      vm) emit_vm "$r" "$spoke_name" ;;
-      log_analytics) emit_spoke_log_analytics "$r" "$spoke_name" ;;
-      azure_backup) emit_azure_backup "$r" ;;
-      custom) emit_custom "$r" "$spoke_name" ;;
-      *)  # unknown types treated as custom placeholders
-          add_warning "Spoke resource type '${typ}' has no emitter yet; using custom placeholder pricing."
-          emit_custom "$(echo "$r" | jq --arg n "$typ" '. + {name:(.name // $n), unit:(.unit // "each"), quantity:(.quantity // (.count // 1)), unit_price:(.unit_price // 0)}')" "$spoke_name"
-          ;;
-    esac
-  done < <(echo "$s" | jq -c '.resources[]?')
+    emit_resource "$r" "$spoke_name"
+  done < <(echo "$spoke_resources_json" | jq -c '.[]?')
 done < <(echo "$spokes" | jq -c '.[]?')
 
 # Optional managed services line items (e.g., fractional SWAT teams per month)
