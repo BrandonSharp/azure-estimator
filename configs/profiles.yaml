@@ -1,24 +1,22 @@
+empty:
+  baseline:
+    resources: []
+    
 low_cost:
   baseline:
     resources:
       - type: entra_p2
-        enabled: true
         users: 2
       - type: azure_firewall
-        enabled: true
         sku: "Basic"
       - type: bastion
-        enabled: true
         sku: "Basic"
         hours_per_month: 730
       - type: sentinel
-        enabled: true
         ingest_gb_per_day: 5
       - type: log_analytics
-        enabled: true
         retention_days: 30
       - type: public_ip
-        enabled: true
         sku: "Standard"         # Standard | Basic
         count: 2
         hours_per_month: 730
@@ -28,23 +26,17 @@ balanced:
   baseline:
     resources:
       - type: entra_p2
-        enabled: true
         users: 10
       - type: azure_firewall
-        enabled: true
         sku: "Standard"
       - type: bastion
-        enabled: true
         sku: "Standard"
         hours_per_month: 730
       - type: sentinel
-        enabled: true
         ingest_gb_per_day: 10
       - type: log_analytics
-        enabled: true
         retention_days: 90
       - type: public_ip
-        enabled: true
         sku: "Standard"         # Standard | Basic
         count: 2
         hours_per_month: 730
@@ -54,24 +46,16 @@ high_security:
   baseline:
     resources:
       - type: entra_p2
-        enabled: true
         users: 10
       - type: azure_firewall
-        enabled: true
         sku: "Premium"
       - type: bastion
-        enabled: true
         sku: "Premium"
-        hours_per_month: 730
       - type: sentinel
-        enabled: true
         commitment_tier_gb_per_day: 50
       - type: log_analytics
-        enabled: true
         retention_days: 180
       - type: public_ip
-        enabled: true
         sku: "Standard"         # Standard | Basic
         count: 2
-        hours_per_month: 730
         notes: "2x public IPs for Firewall and Bastion"

@@ -13,21 +13,13 @@ pricing:
 
 profile: "balanced"
 
-inputs:
-  bicep_plan: "./plans/main.json"   # output of `az deployment what-if`
-
-
 baseline:
   resources:
     - type: vpn_gateway
-      enabled: false
       sku: "VpnGw1"           # example input; used as matching hint
-      hours_per_month: 730
 
     - type: app_gateway_waf
-      enabled: false
       sku: "WAF_v2"           # WAF_v2 | Standard_v2
-      hours_per_month: 730
       capacity_units_per_hour_avg: 2
 
 spokes:
@@ -39,12 +31,9 @@ spokes:
         count: 2
         size: "Standard_D4s_v5"
         os: "linux"
-        hours_per_month: 730
         notes: "Two application VMs"
 
       - type: azure_backup
-        enabled: true
-        # v1 model: protected instances + backup storage
         protected_instances:
           - tier: "50GB"        # naming varies; used as matching hint
             count: 2
@@ -56,9 +45,7 @@ spokes:
         notes: "App-specific workspace ingestion"
 
       - type: app_gateway_waf
-        enabled: true
         sku: "WAF_v2"
-        hours_per_month: 730
         capacity_units_per_hour_avg: 1.25
         notes: "App-specific ingress with WAF"
 
