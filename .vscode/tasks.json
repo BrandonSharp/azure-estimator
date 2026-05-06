@@ -1,0 +1,48 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Estimate: Run az-cost for active file",
+      "type": "shell",
+      "command": "mkdir -p \"output/${fileBasenameNoExtension}\" && ./src/az-cost.sh \"${file}\" \"src/configs/profiles.yaml\" \"src/configs/service-meter-map.yaml\" \"output/${fileBasenameNoExtension}\" \"src/configs/manual-pricing.yaml\"",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Azure: List VM SKUs in region",
+      "type": "shell",
+      "command": "REGION=\"${input:vmSkuRegion}\"; FILTER=\"${input:vmSkuNameContains}\"; if [ -n \"$FILTER\" ]; then az vm list-skus --location \"$REGION\" --resource-type virtualMachines --all --query \"[].name\" -o tsv | grep -i -- \"$FILTER\" | sort -u; else az vm list-skus --location \"$REGION\" --resource-type virtualMachines --all --query \"[].name\" -o tsv | sort -u; fi",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "shared",
+        "clear": true
+      },
+      "problemMatcher": []
+    }
+  ],
+  "inputs": [
+    {
+      "id": "vmSkuRegion",
+      "type": "promptString",
+      "description": "Azure region for VM SKU lookup",
+      "default": "usgovvirginia"
+    },
+    {
+      "id": "vmSkuNameContains",
+      "type": "promptString",
+      "description": "Optional VM SKU name filter (contains, case-insensitive)",
+      "default": ""
+    }
+  ]
+}

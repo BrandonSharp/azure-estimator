@@ -5,7 +5,7 @@ set -euo pipefail
 # az-cost.sh
 #
 # Usage:
-#   ./az-cost.sh configs/estimate.yaml configs/profiles.yaml configs/service-meter-map.yaml output/ [configs/manual-pricing.yaml]
+#   ./az-cost.sh configs/demo-estimate.yaml configs/profiles.yaml configs/service-meter-map.yaml output/ [configs/manual-pricing.yaml]
 #
 # Expected YAML shapes (high-level):
 #
@@ -58,7 +58,7 @@ set -euo pipefail
 # - Pagination uses NextPageLink until enough Items are collected. [2](https://prices.azure.com/api/retail/prices)
 # ------------------------------------------------------------------------------
 
-ESTIMATE_YAML="${1:-configs/estimate.yaml}"
+ESTIMATE_YAML="${1:-configs/demo-estimate.yaml}"
 PROFILES_YAML="${2:-configs/profiles.yaml}"
 METERMAP_YAML="${3:-configs/service-meter-map.yaml}"
 OUTDIR="${4:-output}"

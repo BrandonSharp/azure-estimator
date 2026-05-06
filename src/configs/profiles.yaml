@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./profiles.schema.json
 empty:
   baseline:
     resources: []
@@ -5,22 +6,17 @@ empty:
 low_cost:
   baseline:
     resources:
-      - type: entra_p2
-        users: 2
       - type: azure_firewall
-        sku: "Basic"
-      - type: bastion
-        sku: "Basic"
-        hours_per_month: 730
+        sku: "Standard"
       - type: sentinel
-        ingest_gb_per_day: 5
-      - type: log_analytics
-        retention_days: 30
+        ingest_gb_per_day: 1
+      - type: bastion
+        sku: "Standard"
       - type: public_ip
         sku: "Standard"         # Standard | Basic
-        count: 2
+        count: 1
         hours_per_month: 730
-        notes: "2x public IPs for Firewall and Bastion"
+        notes: "1x public IPs for Firewall"
 
 balanced:
   baseline:

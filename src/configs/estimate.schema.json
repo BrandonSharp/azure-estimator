@@ -1,0 +1,921 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/azure-estimator/configs/estimate.schema.json",
+  "title": "Azure Estimator Estimate Configuration",
+  "description": "Schema for estimate files used by az-cost.sh.",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "meta": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "customer": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Display name for the estimate report."
+        },
+        "cloud": {
+          "type": "string",
+          "enum": [
+            "azuregov",
+            "commercial"
+          ],
+          "default": "azuregov",
+          "description": "Cloud key used in configs/service-meter-map.yaml."
+        },
+        "region": {
+          "type": "string",
+          "minLength": 1,
+          "default": "usgovvirginia",
+          "description": "Azure armRegionName used for Retail Prices API filtering."
+        },
+        "currency": {
+          "type": "string",
+          "pattern": "^[A-Z]{3}$",
+          "default": "USD"
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        }
+      }
+    },
+    "pricing": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "discount_pct": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100,
+          "default": 0
+        },
+        "uplift_pct": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "managed_services": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "swat_teams": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0,
+              "description": "Supports fractional values (for example 1.5)."
+            },
+            "rate_per_team_per_month": {
+              "type": "number",
+              "minimum": 0
+            },
+            "people_per_team": {
+              "type": "number",
+              "minimum": 0
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        },
+        "manual_services": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "entra_p2": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "price_per_user_per_year": {
+                  "type": "number",
+                  "minimum": 0
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "profile": {
+      "type": "string",
+      "minLength": 1,
+      "default": "balanced"
+    },
+    "baseline": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "resources": {
+          "$ref": "#/$defs/resources"
+        }
+      }
+    },
+    "spokes": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/spoke"
+      }
+    }
+  },
+  "$defs": {
+    "resources": {
+      "description": "Supports array form and keyed-object form. Object keys are treated as type names.",
+      "oneOf": [
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/resource"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/resourceWithoutType"
+          }
+        }
+      ]
+    },
+    "spoke": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "name"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "notes": {
+          "type": "string"
+        },
+        "resources": {
+          "$ref": "#/$defs/resources"
+        }
+      }
+    },
+    "resourceBase": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "enabled": {
+          "type": "boolean",
+          "default": true
+        },
+        "notes": {
+          "type": "string"
+        }
+      }
+    },
+    "resource": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resourceBase"
+        },
+        {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/vm"
+            },
+            {
+              "$ref": "#/$defs/azureFirewall"
+            },
+            {
+              "$ref": "#/$defs/natGateway"
+            },
+            {
+              "$ref": "#/$defs/publicIp"
+            },
+            {
+              "$ref": "#/$defs/azureBackup"
+            },
+            {
+              "$ref": "#/$defs/vpnGateway"
+            },
+            {
+              "$ref": "#/$defs/appGatewayWaf"
+            },
+            {
+              "$ref": "#/$defs/bastion"
+            },
+            {
+              "$ref": "#/$defs/logAnalytics"
+            },
+            {
+              "$ref": "#/$defs/sentinel"
+            },
+            {
+              "$ref": "#/$defs/entraP2"
+            },
+            {
+              "$ref": "#/$defs/defender"
+            },
+            {
+              "$ref": "#/$defs/custom"
+            },
+            {
+              "$ref": "#/$defs/fallback"
+            }
+          ]
+        }
+      ]
+    },
+    "resourceWithoutType": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/resourceBase"
+        },
+        {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/vmNoType"
+            },
+            {
+              "$ref": "#/$defs/azureFirewallNoType"
+            },
+            {
+              "$ref": "#/$defs/natGatewayNoType"
+            },
+            {
+              "$ref": "#/$defs/publicIpNoType"
+            },
+            {
+              "$ref": "#/$defs/azureBackupNoType"
+            },
+            {
+              "$ref": "#/$defs/vpnGatewayNoType"
+            },
+            {
+              "$ref": "#/$defs/appGatewayWafNoType"
+            },
+            {
+              "$ref": "#/$defs/bastionNoType"
+            },
+            {
+              "$ref": "#/$defs/logAnalyticsNoType"
+            },
+            {
+              "$ref": "#/$defs/sentinelNoType"
+            },
+            {
+              "$ref": "#/$defs/entraP2NoType"
+            },
+            {
+              "$ref": "#/$defs/defenderNoType"
+            },
+            {
+              "$ref": "#/$defs/customNoType"
+            },
+            {
+              "type": "object",
+              "additionalProperties": true
+            }
+          ]
+        }
+      ]
+    },
+    "vm": {
+      "type": "object",
+      "required": [
+        "type",
+        "size"
+      ],
+      "properties": {
+        "type": {
+          "const": "vm"
+        },
+        "count": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "size": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        },
+        "os": {
+          "type": "string",
+          "enum": [
+            "linux",
+            "windows"
+          ],
+          "default": "linux"
+        }
+      }
+    },
+    "vmNoType": {
+      "type": "object",
+      "required": [
+        "size"
+      ],
+      "properties": {
+        "count": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "size": {
+          "type": "string",
+          "minLength": 1
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        },
+        "os": {
+          "type": "string",
+          "enum": [
+            "linux",
+            "windows"
+          ],
+          "default": "linux"
+        }
+      }
+    },
+    "azureFirewall": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "azure_firewall"
+        },
+        "sku": {
+          "type": "string",
+          "default": "Standard"
+        },
+        "instances": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "data_processed_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "azureFirewallNoType": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "default": "Standard"
+        },
+        "instances": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "data_processed_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "natGateway": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "nat_gateway"
+        },
+        "gateways": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "data_processed_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "natGatewayNoType": {
+      "type": "object",
+      "properties": {
+        "gateways": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "data_processed_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "publicIp": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "public_ip"
+        },
+        "sku": {
+          "type": "string",
+          "default": "Standard"
+        },
+        "count": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        }
+      }
+    },
+    "publicIpNoType": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "default": "Standard"
+        },
+        "count": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        }
+      }
+    },
+    "azureBackup": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "azure_backup"
+        },
+        "protected_instances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "tier": {
+                "type": "string"
+              },
+              "count": {
+                "type": "number",
+                "minimum": 0,
+                "default": 0
+              }
+            }
+          }
+        },
+        "backup_storage_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "azureBackupNoType": {
+      "type": "object",
+      "properties": {
+        "protected_instances": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": true,
+            "properties": {
+              "tier": {
+                "type": "string"
+              },
+              "count": {
+                "type": "number",
+                "minimum": 0,
+                "default": 0
+              }
+            }
+          }
+        },
+        "backup_storage_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "vpnGateway": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "vpn_gateway"
+        },
+        "sku": {
+          "type": "string"
+        },
+        "count": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        }
+      }
+    },
+    "vpnGatewayNoType": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string"
+        },
+        "count": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        }
+      }
+    },
+    "appGatewayWaf": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "enum": [
+            "app_gateway_waf",
+            "app_gateway",
+            "app-gateway-waf"
+          ]
+        },
+        "sku": {
+          "type": "string",
+          "enum": [
+            "WAF_v2",
+            "Standard_v2"
+          ],
+          "default": "WAF_v2"
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        },
+        "capacity_units_per_hour_avg": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "appGatewayWafNoType": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "enum": [
+            "WAF_v2",
+            "Standard_v2"
+          ],
+          "default": "WAF_v2"
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 730
+        },
+        "capacity_units_per_hour_avg": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "bastion": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "bastion"
+        },
+        "sku": {
+          "type": "string",
+          "default": "Standard"
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "data_out_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "bastionNoType": {
+      "type": "object",
+      "properties": {
+        "sku": {
+          "type": "string",
+          "default": "Standard"
+        },
+        "hours_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "data_out_gb_per_month": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "logAnalytics": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "log_analytics"
+        },
+        "ingest_gb_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "ingest_gb_day": {
+          "type": "number",
+          "minimum": 0,
+          "description": "Backward-compatible alias for ingest_gb_per_day."
+        },
+        "retention_days": {
+          "type": "number",
+          "minimum": 0,
+          "default": 30
+        }
+      }
+    },
+    "logAnalyticsNoType": {
+      "type": "object",
+      "properties": {
+        "ingest_gb_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "ingest_gb_day": {
+          "type": "number",
+          "minimum": 0
+        },
+        "retention_days": {
+          "type": "number",
+          "minimum": 0,
+          "default": 30
+        }
+      }
+    },
+    "sentinel": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "sentinel"
+        },
+        "ingest_gb_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "commitment_tier_gb_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "sentinelNoType": {
+      "type": "object",
+      "properties": {
+        "ingest_gb_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "commitment_tier_gb_per_day": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "entraP2": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "entra_p2"
+        },
+        "users": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "price_per_user_per_year": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "entraP2NoType": {
+      "type": "object",
+      "properties": {
+        "users": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "price_per_user_per_year": {
+          "type": "number",
+          "minimum": 0
+        }
+      }
+    },
+    "defender": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "const": "defender"
+        },
+        "servers": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "sql": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "storage": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "defenderNoType": {
+      "type": "object",
+      "properties": {
+        "servers": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "sql": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        },
+        "storage": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "custom": {
+      "type": "object",
+      "required": [
+        "type",
+        "name"
+      ],
+      "properties": {
+        "type": {
+          "const": "custom"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "default": "each"
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "unit_price": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "customNoType": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "unit": {
+          "type": "string",
+          "default": "each"
+        },
+        "quantity": {
+          "type": "number",
+          "minimum": 0,
+          "default": 1
+        },
+        "unit_price": {
+          "type": "number",
+          "minimum": 0,
+          "default": 0
+        }
+      }
+    },
+    "fallback": {
+      "type": "object",
+      "required": [
+        "type"
+      ],
+      "properties": {
+        "type": {
+          "type": "string",
+          "minLength": 1,
+          "not": {
+            "enum": [
+              "vm",
+              "azure_firewall",
+              "nat_gateway",
+              "public_ip",
+              "azure_backup",
+              "vpn_gateway",
+              "app_gateway_waf",
+              "app_gateway",
+              "app-gateway-waf",
+              "bastion",
+              "log_analytics",
+              "sentinel",
+              "entra_p2",
+              "defender",
+              "custom"
+            ]
+          }
+        }
+      },
+      "description": "Permissive fallback for not-yet-modeled resource types."
+    }
+  }
+}

@@ -4,13 +4,14 @@ This guide explains how to add a new priced resource to the estimator.
 
 ## How The Pipeline Works
 
-1. `configs/estimate.yaml` and `configs/profiles.yaml` define baseline and spoke resources using the same typed shape.
-2. `configs/manual-pricing.yaml` provides default prices for manual service items.
-3. `configs/service-meter-map.yaml` defines Azure Retail API lookup rules:
+1. `src/configs/demo-estimate.yaml` and `src/configs/profiles.yaml` define baseline and spoke resources using the same typed shape.
+  - `src/configs/estimate.schema.json` and `src/configs/profiles.schema.json` provide editor validation and completion.
+2. `src/configs/manual-pricing.yaml` provides default prices for manual service items.
+3. `src/configs/service-meter-map.yaml` defines Azure Retail API lookup rules:
    - service name
    - optional service-level filters
    - meter keys and matching constraints
-4. Emitter functions (`emitters/baseline.sh` and `emitters/spokes.sh`) convert config inputs into line items:
+4. Emitter functions (`src/emitters/baseline.sh` and `src/emitters/spokes.sh`) convert config inputs into line items:
    - quantity math
    - unit price lookup via `price_for`
    - output rows via `add_item`
@@ -18,13 +19,15 @@ This guide explains how to add a new priced resource to the estimator.
 
 ## File Responsibilities
 
-- `configs/estimate.yaml`: user intent and quantities
-- `configs/profiles.yaml`: profile overlays with the same resource schema as estimate
-- `configs/manual-pricing.yaml`: baseline defaults for manual/non-API priced items
-- `configs/service-meter-map.yaml`: API matching rules
-- `az-cost.sh`: merge/orchestration and output formatting
-- `emitters/baseline.sh`: baseline + shared service emitters
-- `emitters/spokes.sh`: spoke and cross-scope resource emitters
+- `src/configs/demo-estimate.yaml`: user intent and quantities
+- `src/configs/estimate.schema.json`: estimate-file schema used by YAML tooling for completion and validation
+- `src/configs/profiles.schema.json`: profile-overlay schema used by YAML tooling for completion and validation
+- `src/configs/profiles.yaml`: profile overlays with the same resource schema as estimate
+- `src/configs/manual-pricing.yaml`: baseline defaults for manual/non-API priced items
+- `src/configs/service-meter-map.yaml`: API matching rules
+- `src/az-cost.sh`: merge/orchestration and output formatting
+- `src/emitters/baseline.sh`: baseline + shared service emitters
+- `src/emitters/spokes.sh`: spoke and cross-scope resource emitters
 
 ## Resource Schema (Baseline + Spokes)
 
@@ -60,7 +63,7 @@ spokes:
 
 ## Manual Pricing Defaults
 
-- Defaults are loaded from `configs/manual-pricing.yaml` (or a custom file path passed as arg 5).
+- Defaults are loaded from `src/configs/manual-pricing.yaml` (or a custom file path passed as arg 5).
 - Override precedence is:
   - `manual-pricing.yaml` defaults
   - `profiles.yaml` values
@@ -69,7 +72,7 @@ spokes:
 
 ## Step 1: Add Or Update Meter Map Rules
 
-Add or update a service under the cloud block in `configs/service-meter-map.yaml`.
+Add or update a service under the cloud block in `src/configs/service-meter-map.yaml`.
 
 Example shape:
 
@@ -134,7 +137,7 @@ Type normalization:
 
 If a type has no emitter, the script warns and falls back to `emit_custom` placeholder pricing.
 
-## Step 4: Add Config Shape In estimate.yaml
+## Step 4: Add Config Shape In demo-estimate.yaml
 
 Document and add example input under baseline and/or spokes (same typed shape).
 
@@ -150,12 +153,28 @@ spokes:
         retention_days: 90
 ```
 
-## Step 5: Validate
+## Step 5: Update The Estimate Schema
+
+When a new resource type or input field is added, update both `src/configs/estimate.schema.json` and `src/configs/profiles.schema.json` so users get completion and validation while editing estimate/profile files.
+
+Minimum schema updates:
+
+- Add a new resource definition under `$defs` for the new `type` (for array-style resources) in `src/configs/estimate.schema.json`.
+- Add a no-type companion definition for keyed-object resources (for example `vmNoType`) in `src/configs/estimate.schema.json`.
+- Register both definitions in `oneOf` lists under `$defs.resource` and `$defs.resourceWithoutType` in `src/configs/estimate.schema.json`.
+- Ensure `src/configs/profiles.schema.json` references the updated `#/$defs/resources` from `src/configs/estimate.schema.json` (or update it if you decouple schemas later).
+- Add or update field descriptions/defaults so hints in editors stay accurate.
+
+Validation tip:
+
+- Open `src/configs/demo-estimate.yaml` and `src/configs/profiles.yaml` in VS Code and verify completions and warnings reflect your new type/fields.
+
+## Step 6: Validate
 
 Run:
 
 ```bash
-./az-cost.sh configs/estimate.yaml configs/profiles.yaml configs/service-meter-map.yaml output/
+./src/az-cost.sh src/configs/demo-estimate.yaml src/configs/profiles.yaml src/configs/service-meter-map.yaml output/
 ```
 
 Check:

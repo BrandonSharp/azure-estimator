@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/azure-estimator/configs/profiles.schema.json",
+  "title": "Azure Estimator Profiles Configuration",
+  "description": "Schema for configs/profiles.yaml profile overlays used by az-cost.sh.",
+  "type": "object",
+  "additionalProperties": {
+    "$ref": "#/$defs/profileOverlay"
+  },
+  "$defs": {
+    "profileOverlay": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "meta": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "customer": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cloud": {
+              "type": "string",
+              "enum": [
+                "azuregov",
+                "commercial"
+              ]
+            },
+            "region": {
+              "type": "string",
+              "minLength": 1
+            },
+            "currency": {
+              "type": "string",
+              "pattern": "^[A-Z]{3}$"
+            },
+            "hours_per_month": {
+              "type": "number",
+              "minimum": 0
+            }
+          }
+        },
+        "pricing": {
+          "type": "object",
+          "additionalProperties": true,
+          "properties": {
+            "discount_pct": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 100
+            },
+            "uplift_pct": {
+              "type": "number",
+              "minimum": 0
+            },
+            "managed_services": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "swat_teams": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "rate_per_team_per_month": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "people_per_team": {
+                  "type": "number",
+                  "minimum": 0
+                },
+                "notes": {
+                  "type": "string"
+                }
+              }
+            },
+            "manual_services": {
+              "type": "object",
+              "additionalProperties": true,
+              "properties": {
+                "entra_p2": {
+                  "type": "object",
+                  "additionalProperties": true,
+                  "properties": {
+                    "price_per_user_per_year": {
+                      "type": "number",
+                      "minimum": 0
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "baseline": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "resources": {
+              "$ref": "./estimate.schema.json#/$defs/resources"
+            }
+          }
+        }
+      }
+    }
+  }
+}

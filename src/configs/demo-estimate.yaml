@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=./estimate.schema.json
 meta:
   customer: "Example Customer"
   cloud: "azuregov"            # azuregov | commercial

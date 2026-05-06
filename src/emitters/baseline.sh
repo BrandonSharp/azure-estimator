@@ -133,7 +133,7 @@ emit_bastion() {
   local cfg="$1"
   local sku hours data_out notes
   sku="$(echo "$cfg" | jq -r '.sku // "Standard"')"
-  hours="$(echo "$cfg" | jq -r '.hours_per_month // 0')"
+  hours="$(echo "$cfg" | jq -r '.hours_per_month // 730')"
   data_out="$(echo "$cfg" | jq -r '.data_out_gb_per_month // 0')"
   notes="$(notes_from_cfg "$cfg")"
 

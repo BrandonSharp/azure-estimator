@@ -1,0 +1,12 @@
+{
+  "yaml.schemas": {
+    "src/configs/estimate.schema.json": [
+      "src/configs/demo-estimate.yaml",
+      "estimates/*.yaml"
+    ],
+    "src/configs/profiles.schema.json": [
+      "src/configs/profiles.yaml",
+      "src/configs/profiles.*.yaml"
+    ]
+  }
+}
